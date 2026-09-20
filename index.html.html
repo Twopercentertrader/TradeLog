@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trade Log & Verdict</title>
+<style>
+:root{
+  --bg:#12161c; --panel:#181d25; --line:#262c36; --text:#e8ebef; --sub:#8890a0;
+  --accent:#c98a3e; --win:#5f9e7a; --loss:#b8654f;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f3f1ec; --panel:#fbfaf7; --line:#dedad0; --text:#1c1f24; --sub:#6b6a63;
+    --accent:#a8672a; --win:#3f7a5c; --loss:#a1503c;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Georgia',ui-serif,serif;line-height:1.45;min-height:100%;}
+.wrap{max-width:1040px;margin:0 auto;padding:2.5rem 1.25rem 4rem;}
+h1{font-size:1.7rem;font-weight:600;margin:0 0 .15rem;letter-spacing:.01em;}
+.sub{color:var(--sub);font-size:.92rem;margin:0 0 2rem;font-family:ui-sans-serif,system-ui,sans-serif;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1.25rem 1.4rem;margin-bottom:1.5rem;}
+.panel h2{font-size:1rem;text-transform:none;font-weight:600;margin:0 0 1rem;font-family:ui-sans-serif,system-ui,sans-serif;color:var(--text);}
+label{display:block;font-size:.72rem;color:var(--sub);margin-bottom:.25rem;font-family:ui-sans-serif,system-ui,sans-serif;}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.7rem;}
+.grid > div{min-width:0;}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:.45rem .5rem;font-size:.88rem;font-family:ui-sans-serif,system-ui,sans-serif;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.span2{grid-column:span 2;}
+.span3{grid-column:span 3;}
+.span6{grid-column:span 6;}
+.row-actions{margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap;}
+button{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.85rem;border-radius:4px;padding:.55rem 1.1rem;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;}
+button.primary{background:var(--accent);border-color:var(--accent);color:#151515;font-weight:600;}
+button:hover{filter:brightness(1.1);}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;}
+table{border-collapse:collapse;width:100%;min-width:920px;font-family:ui-sans-serif,system-ui,sans-serif;font-size:.82rem;}
+th,td{padding:.5rem .55rem;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;}
+th{color:var(--sub);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:var(--panel);}
+td.note{white-space:normal;min-width:140px;}
+.r-pos{color:var(--win);font-weight:600;}
+.r-neg{color:var(--loss);font-weight:600;}
+.pill{font-size:.72rem;padding:.1rem .5rem;border-radius:10px;border:1px solid var(--line);}
+.pill.yes{color:var(--win);border-color:var(--win);}
+.pill.no{color:var(--loss);border-color:var(--loss);}
+.del{color:var(--loss);background:none;border:none;cursor:pointer;font-size:.9rem;padding:.2rem .4rem;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.stat{border:1px solid var(--line);border-radius:6px;padding:.85rem 1rem;}
+.stat .k{font-size:.72rem;color:var(--sub);font-family:ui-sans-serif,system-ui,sans-serif;margin-bottom:.3rem;}
+.stat .v{font-size:1.35rem;font-weight:600;}
+.verdict{margin-top:1.2rem;padding:1rem 1.1rem;border-radius:6px;border:1px solid var(--accent);font-family:ui-sans-serif,system-ui,sans-serif;font-size:.92rem;}
+.verdict b{color:var(--accent);}
+.empty{color:var(--sub);font-family:ui-sans-serif,system-ui,sans-serif;font-size:.85rem;padding:1rem;text-align:center;}
+.count{color:var(--sub);font-size:.82rem;font-family:ui-sans-serif,system-ui,sans-serif;margin-bottom:.6rem;}
+@media (max-width:720px){
+  .grid{grid-template-columns:repeat(2,1fr);}
+  .span2,.span3{grid-column:span 2;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trade Log</h1>
+  <p class="sub">Log each trade, then let the verdict tell you whether the edge, or the execution, needs the work.</p>
+
+  <div class="panel">
+    <h2>New entry</h2>
+    <div class="grid" id="form">
+      <div><label>Date</label><input type="date" id="f-date"></div>
+      <div><label>Symbol</label><input type="text" id="f-symbol" placeholder="BTCUSDT"></div>
+      <div><label>Dir</label><select id="f-dir"><option>Long</option><option>Short</option></select></div>
+      <div><label>4H Bias</label><input type="text" id="f-4h" placeholder="Bull / Bear / Range"></div>
+      <div><label>1H Setup</label><input type="text" id="f-1h" placeholder="Pullback to demand"></div>
+      <div><label>15m Trigger</label><input type="text" id="f-15m" placeholder="Engulfing candle"></div>
+
+      <div class="span2"><label>Entry</label><input type="number" step="any" id="f-entry"></div>
+      <div class="span2"><label>Stop</label><input type="number" step="any" id="f-stop"></div>
+      <div class="span2"><label>Target</label><input type="number" step="any" id="f-target"></div>
+
+      <div class="span2"><label>R Result</label><input type="number" step="any" id="f-r" placeholder="1.5 or -1"></div>
+      <div class="span2"><label>Plan?</label><select id="f-plan"><option>Yes</option><option>No</option></select></div>
+      <div class="span2"><label>&nbsp;</label>
+        <button class="primary" id="add-btn" style="width:100%">Log trade</button>
+      </div>
+
+      <div class="span6"><label>Note</label><input type="text" id="f-note" placeholder="What actually happened, in one line"></div>
+    </div>
+    <div class="row-actions">
+      <button id="clear-btn">Clear all trades</button>
+      <button id="export-btn">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Google Sheet sync (optional)</h2>
+    <div class="grid">
+      <div class="span6"><label>Apps Script Web App URL</label>
+        <input type="text" id="f-webhook" placeholder="https://script.google.com/macros/s/…/exec">
+      </div>
+    </div>
+    <div class="row-actions">
+      <button class="primary" id="save-webhook-btn">Save URL</button>
+      <span class="count" id="webhook-status" style="align-self:center;"></span>
+    </div>
+    <p class="sub" style="margin:.8rem 0 0;">Only works once this page is hosted outside Claude (e.g. GitHub Pages) — see the setup notes below the log. Every new trade is sent here in addition to being saved locally.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Log</h2>
+    <div class="count" id="log-count"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Date</th><th>Symbol</th><th>Dir</th><th>4H Bias</th><th>1H Setup</th>
+          <th>15m Trigger</th><th>Entry</th><th>Stop</th><th>Target</th><th>R</th><th>Plan?</th><th>Note</th><th></th>
+        </tr></thead>
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Verdict</h2>
+    <div class="stats" id="stats"></div>
+    <div class="verdict" id="verdict-text"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Sheets setup (one-time)</h2>
+    <p class="sub" style="margin:0 0 .6rem;">1. In a Google Sheet, go to Extensions → Apps Script and paste this, replacing the default code:</p>
+    <div class="tablewrap" style="padding:.8rem 1rem;"><code id="script-code" style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.78rem;line-height:1.6;"></code></div>
+    <p class="sub" style="margin:.8rem 0 .3rem;">2. Click Deploy → New deployment → type "Web app". Set "Execute as" to yourself and "Who has access" to "Anyone". Deploy, and copy the Web app URL it gives you.</p>
+    <p class="sub" style="margin:0;">3. Paste that URL in the field above and hit Save. Host this HTML file (e.g. GitHub Pages, same as your other scanners) — the sync only runs there, not on this preview link.</p>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'trade-log-v1';
+const WEBHOOK_KEY = 'trade-log-webhook';
+let trades = [];
+try {
+  const raw = localStorage.getItem(STORE_KEY);
+  trades = raw ? JSON.parse(raw) : [];
+} catch(e) { trades = []; }
+
+let webhookUrl = '';
+try { webhookUrl = localStorage.getItem(WEBHOOK_KEY) || ''; } catch(e) {}
+
+function save(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(trades)); } catch(e) {}
+}
+
+function syncToSheet(t){
+  if (!webhookUrl) return;
+  try {
+    const params = new URLSearchParams(t);
+    fetch(webhookUrl + '?' + params.toString(), { method: 'GET', mode: 'no-cors' }).catch(()=>{});
+  } catch(e) {}
+}
+
+const APPS_SCRIPT = `function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Log')
+    || SpreadsheetApp.getActiveSpreadsheet().insertSheet('Log');
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['#','Date','Symbol','Dir','4H Bias','1H Setup','15m Trigger','Entry','Stop','Target','R Result','Plan?','Note']);
+  }
+  var t = e.parameter;
+  sheet.appendRow([
+    sheet.getLastRow(), t.date, t.symbol, t.dir, t.h4, t.h1, t.m15,
+    t.entry, t.stop, t.target, t.r, t.plan, t.note
+  ]);
+  return ContentService.createTextOutput('ok');
+}`;
+
+function fmt(n, d=2){
+  if (n === '' || n === null || isNaN(n)) return '—';
+  return Number(n).toFixed(d);
+}
+
+function render(){
+  const body = document.getElementById('log-body');
+  const countEl = document.getElementById('log-count');
+  countEl.textContent = trades.length + (trades.length === 1 ? ' trade logged' : ' trades logged');
+  if (trades.length === 0){
+    body.innerHTML = '<tr><td colspan="14" class="empty">No trades yet. Log your first one above.</td></tr>';
+  } else {
+    body.innerHTML = trades.map((t, i) => {
+      const rNum = parseFloat(t.r);
+      const rClass = isNaN(rNum) ? '' : (rNum > 0 ? 'r-pos' : (rNum < 0 ? 'r-neg' : ''));
+      const planClass = t.plan === 'Yes' ? 'yes' : 'no';
+      return `<tr>
+        <td>${i+1}</td><td>${t.date||''}</td><td>${t.symbol||''}</td><td>${t.dir||''}</td>
+        <td>${t.h4||''}</td><td>${t.h1||''}</td><td>${t.m15||''}</td>
+        <td>${t.entry||''}</td><td>${t.stop||''}</td><td>${t.target||''}</td>
+        <td class="${rClass}">${t.r!==''&&t.r!=null ? t.r : '—'}</td>
+        <td><span class="pill ${planClass}">${t.plan||''}</span></td>
+        <td class="note">${t.note||''}</td>
+        <td><button class="del" data-i="${i}" title="Delete">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+  renderStats();
+}
+
+function renderStats(){
+  const rs = trades.map(t => parseFloat(t.r)).filter(v => !isNaN(v));
+  const total = rs.length;
+  const wins = rs.filter(v => v > 0).length;
+  const losses = rs.filter(v => v < 0).length;
+  const winRate = total ? wins/total : null;
+  const avgWin = wins ? rs.filter(v=>v>0).reduce((a,b)=>a+b,0)/wins : null;
+  const avgLoss = losses ? rs.filter(v=>v<0).reduce((a,b)=>a+b,0)/losses : null;
+  const expectancy = (winRate!==null && avgWin!==null && avgLoss!==null)
+    ? (winRate*avgWin) + ((1-winRate)*avgLoss) : null;
+  const planYes = trades.filter(t => t.plan === 'Yes').length;
+  const planRate = trades.length ? planYes/trades.length : null;
+
+  const stats = [
+    ['Total trades', total || '0'],
+    ['Win rate', winRate!==null ? (winRate*100).toFixed(1)+'%' : '—'],
+    ['Avg winner (R)', avgWin!==null ? '+'+fmt(avgWin) : '—'],
+    ['Avg loser (R)', avgLoss!==null ? fmt(avgLoss) : '—'],
+    ['Expectancy (R/trade)', expectancy!==null ? fmt(expectancy) : '—'],
+    ['Plan-follow rate', planRate!==null ? (planRate*100).toFixed(1)+'%' : '—'],
+    ['Wins', wins], ['Losses', losses],
+  ];
+  document.getElementById('stats').innerHTML = stats.map(([k,v]) =>
+    `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  let verdict;
+  if (total < 30){
+    verdict = `<b>Keep logging.</b> ${total} of 50 trades in — the read gets reliable once you're past 30–50.`;
+  } else if (expectancy > 0){
+    verdict = `<b>EDGE.</b> Positive expectancy at +${fmt(expectancy)}R per trade. Keep the system as-is and scale slowly.`;
+  } else if (planRate !== null && planRate < 0.8){
+    verdict = `<b>EXECUTION.</b> Expectancy is negative (${fmt(expectancy)}R), but plan-follow is only ${(planRate*100).toFixed(0)}%. The edge may be fine — you're not taking it cleanly. Fix discipline first.`;
+  } else {
+    verdict = `<b>NO EDGE YET.</b> Expectancy is negative (${fmt(expectancy)}R) and you're following plan ≥80% of the time. Check the 4H / 1H / 15m columns for the weakest leg and fix that one thing — don't hop systems.`;
+  }
+  document.getElementById('verdict-text').innerHTML = verdict;
+}
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  const get = id => document.getElementById(id).value.trim();
+  const t = {
+    date: get('f-date'), symbol: get('f-symbol').toUpperCase(), dir: get('f-dir'),
+    h4: get('f-4h'), h1: get('f-1h'), m15: get('f-15m'),
+    entry: get('f-entry'), stop: get('f-stop'), target: get('f-target'),
+    r: get('f-r'), plan: get('f-plan'), note: get('f-note')
+  };
+  if (!t.symbol && !t.r){
+    alert('Add at least a symbol and an R result.');
+    return;
+  }
+  trades.push(t);
+  save(); render(); syncToSheet(t);
+  ['f-symbol','f-4h','f-1h','f-15m','f-entry','f-stop','f-target','f-r','f-note'].forEach(id => document.getElementById(id).value = '');
+});
+
+document.getElementById('save-webhook-btn').addEventListener('click', () => {
+  webhookUrl = document.getElementById('f-webhook').value.trim();
+  try { localStorage.setItem(WEBHOOK_KEY, webhookUrl); } catch(e) {}
+  const status = document.getElementById('webhook-status');
+  status.textContent = webhookUrl ? 'Saved.' : 'Cleared.';
+  setTimeout(() => status.textContent = '', 2000);
+});
+
+document.getElementById('f-webhook').value = webhookUrl;
+document.getElementById('script-code').textContent = APPS_SCRIPT;
+
+document.getElementById('log-body').addEventListener('click', (e) => {
+  if (e.target.classList.contains('del')){
+    const i = parseInt(e.target.dataset.i);
+    trades.splice(i,1);
+    save(); render();
+  }
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (confirm('Delete all logged trades? This cannot be undone.')){
+    trades = []; save(); render();
+  }
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const headers = ['#','Date','Symbol','Dir','4H Bias','1H Setup','15m Trigger','Entry','Stop','Target','R Result','Plan?','Note'];
+  const rows = trades.map((t,i) => [i+1, t.date, t.symbol, t.dir, t.h4, t.h1, t.m15, t.entry, t.stop, t.target, t.r, t.plan, t.note]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'trade-log.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+render();
+</script>
+</body>
+</html>
